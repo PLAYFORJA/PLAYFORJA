@@ -180,11 +180,6 @@ class PlayForjaRepository(
         return AuthResult.Success(authenticatedUser)
     }
 
-    suspend fun switchToLocalUser(userId: Long) {
-        val user = userDao.getUserById(userId) ?: return
-        sessionManager.setActiveUser(user.id, user.accentTheme)
-    }
-
     suspend fun logout() {
         sessionManager.clearSession()
     }
