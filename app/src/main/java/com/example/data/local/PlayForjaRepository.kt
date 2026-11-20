@@ -41,14 +41,25 @@ class PlayForjaRepository(
             postDao.observeAllPosts(),
             userDao.observeAllUsers(),
             reactionDao.observeReactionsForUser(currentUserId),
-            followDao.observeFollowsByUser(currentUserId)
-        ) { posts, users, reactions, follows ->
+            followDao.observeFollowsByUser(currentUserId),
+            userDao.observeUserById(currentUserId)
+        ) { posts, users, reactions, follows, currentUser ->
             val userMap = users.associateBy { it.id }
             val reactionMap = reactions.associateBy { it.postId }
             val followedIds = follows.map { it.targetUserId }.toSet()
 
             posts.mapNotNull { post ->
                 val author = userMap[post.authorId] ?: return@mapNotNull null
+                if (!PostVisibilityPolicy.canView(
+                        visibility = post.visibility,
+                        authorId = author.id,
+                        authorClanTag = author.clanTag,
+                        viewerId = currentUserId,
+                        viewerClanTag = currentUser?.clanTag,
+                        followedUserIds = followedIds
+                    )
+                ) return@mapNotNull null
+
                 PostWithDetails(
                     post = post,
                     author = author,
