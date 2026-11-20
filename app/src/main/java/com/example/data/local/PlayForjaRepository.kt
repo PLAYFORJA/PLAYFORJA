@@ -41,14 +41,25 @@ class PlayForjaRepository(
             postDao.observeAllPosts(),
             userDao.observeAllUsers(),
             reactionDao.observeReactionsForUser(currentUserId),
-            followDao.observeFollowsByUser(currentUserId)
-        ) { posts, users, reactions, follows ->
+            followDao.observeFollowsByUser(currentUserId),
+            userDao.observeUserById(currentUserId)
+        ) { posts, users, reactions, follows, currentUser ->
             val userMap = users.associateBy { it.id }
             val reactionMap = reactions.associateBy { it.postId }
             val followedIds = follows.map { it.targetUserId }.toSet()
 
             posts.mapNotNull { post ->
                 val author = userMap[post.authorId] ?: return@mapNotNull null
+                if (!PostVisibilityPolicy.canView(
+                        visibility = post.visibility,
+                        authorId = author.id,
+                        authorClanTag = author.clanTag,
+                        viewerId = currentUserId,
+                        viewerClanTag = currentUser?.clanTag,
+                        followedUserIds = followedIds
+                    )
+                ) return@mapNotNull null
+
                 PostWithDetails(
                     post = post,
                     author = author,
@@ -156,13 +167,17 @@ class PlayForjaRepository(
             return AuthResult.Error("Contraseña incorrecta. Verifica tus datos.")
         }
 
-        sessionManager.setActiveUser(user.id, user.accentTheme)
-        return AuthResult.Success(user)
-    }
+        // Upgrade legacy SHA-256 hashes after a successful login without forcing a password reset.
+        val authenticatedUser = if (SecurityUtils.needsRehash(user.passwordHash)) {
+            user.copy(passwordHash = SecurityUtils.createStoredPassword(password)).also {
+                userDao.updateUser(it)
+            }
+        } else {
+            user
+        }
 
-    suspend fun switchToLocalUser(userId: Long) {
-        val user = userDao.getUserById(userId) ?: return
-        sessionManager.setActiveUser(user.id, user.accentTheme)
+        sessionManager.setActiveUser(authenticatedUser.id, authenticatedUser.accentTheme)
+        return AuthResult.Success(authenticatedUser)
     }
 
     suspend fun logout() {
@@ -202,35 +217,42 @@ class PlayForjaRepository(
         hardwareSpecs: String,
         socialLinks: String,
         clanTag: String
-    ) {
-        val user = userDao.getUserById(userId) ?: return
+    ): Boolean {
+        val user = userDao.getUserById(userId) ?: return false
+        val updatedProfile = user.copy(
+            displayName = displayName.trim().ifBlank { user.displayName },
+            bio = bio.trim(),
+            bioMotto = bioMotto.trim(),
+            playSchedule = playSchedule.trim(),
+            customTitle = customTitle.trim().ifBlank { user.customTitle },
+            platform = platform,
+            favoriteGame = favoriteGame.trim().ifBlank { user.favoriteGame },
+            favoriteGamesCsv = favoriteGamesCsv.trim(),
+            avatarPreset = avatarPreset,
+            bannerPreset = bannerPreset,
+            profileBgStyle = profileBgStyle,
+            frameStyle = frameStyle,
+            accentTheme = accentTheme,
+            hardwareSpecs = hardwareSpecs.trim(),
+            socialLinks = socialLinks.trim(),
+            clanTag = clanTag.trim().uppercase().take(6).ifBlank { user.clanTag }
+        )
+
+        // Award profile XP only when at least one saved profile field actually changes.
+        if (updatedProfile == user) return false
+
         val badges = user.badgesCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
         badges.add("Forjador Estético")
         val newXp = user.xp + 40
         userDao.updateUser(
-            user.copy(
-                displayName = displayName.trim().ifBlank { user.displayName },
-                bio = bio.trim(),
-                bioMotto = bioMotto.trim(),
-                playSchedule = playSchedule.trim(),
-                customTitle = customTitle.trim().ifBlank { user.customTitle },
-                platform = platform,
-                favoriteGame = favoriteGame.trim().ifBlank { user.favoriteGame },
-                favoriteGamesCsv = favoriteGamesCsv.trim(),
-                avatarPreset = avatarPreset,
-                bannerPreset = bannerPreset,
-                profileBgStyle = profileBgStyle,
-                frameStyle = frameStyle,
-                accentTheme = accentTheme,
-                hardwareSpecs = hardwareSpecs.trim(),
-                socialLinks = socialLinks.trim(),
-                clanTag = clanTag.trim().uppercase().take(6).ifBlank { user.clanTag },
+            updatedProfile.copy(
                 xp = newXp,
                 level = levelForXp(newXp),
                 badgesCsv = badges.joinToString(",")
             )
         )
         sessionManager.setAccentTheme(accentTheme)
+        return true
     }
 
     suspend fun createPost(

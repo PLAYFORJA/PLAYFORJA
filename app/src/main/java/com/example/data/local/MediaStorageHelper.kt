@@ -7,17 +7,27 @@ import java.util.UUID
 
 object MediaStorageHelper {
     fun persistPickedImage(context: Context, uri: Uri): String {
+        val mediaDir = File(context.filesDir, "playforja_media")
+        val outFile = File(mediaDir, "media_${UUID.randomUUID()}.jpg")
+
         return try {
-            val mediaDir = File(context.filesDir, "playforja_media")
-            if (!mediaDir.exists()) mediaDir.mkdirs()
-            val outFile = File(mediaDir, "media_${UUID.randomUUID()}.jpg")
-            context.contentResolver.openInputStream(uri)?.use { input ->
+            if (!mediaDir.exists() && !mediaDir.mkdirs()) {
+                return uri.toString()
+            }
+
+            val input = context.contentResolver.openInputStream(uri)
+                ?: return uri.toString()
+
+            input.use { source ->
                 outFile.outputStream().use { output ->
-                    input.copyTo(output)
+                    source.copyTo(output)
                 }
             }
+
             Uri.fromFile(outFile).toString()
         } catch (_: Exception) {
+            // Never return a file:// URI for a file that may be empty or partially written.
+            outFile.delete()
             uri.toString()
         }
     }
