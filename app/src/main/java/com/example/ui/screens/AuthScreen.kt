@@ -95,8 +95,7 @@ fun AuthScreen(
         platform: String,
         favoriteGame: String,
         avatarPreset: String
-    ) -> Unit,
-    onQuickSwitch: (Long) -> Unit
+    ) -> Unit
 ) {
     val extras = LocalPlayForjaExtras.current
     var isRegisterMode by rememberSaveable { mutableStateOf(false) }
@@ -563,7 +562,11 @@ fun AuthScreen(
                                 modifier = Modifier
                                     .width(154.dp)
                                     .clip(RoundedCornerShape(14.dp))
-                                    .clickable { onQuickSwitch(acc.id) }
+                                    .clickable {
+                                        isRegisterMode = false
+                                        loginIdentifier = acc.handle
+                                        loginPassword = ""
+                                    }
                                     .testTag("quick_account_${acc.handle}")
                             ) {
                                 Column(
