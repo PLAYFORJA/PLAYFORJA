@@ -138,6 +138,6 @@ interface NotificationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNotification(notification: NotificationEntity): Long
 
-    @Query("UPDATE notifications SET isRead = 1 WHERE userId = :userId OR userId = 0")
+    @Query("UPDATE notifications SET isRead = 1 WHERE userId = :userId")
     suspend fun markAllRead(userId: Long)
 }
