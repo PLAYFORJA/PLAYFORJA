@@ -156,8 +156,17 @@ class PlayForjaRepository(
             return AuthResult.Error("Contraseña incorrecta. Verifica tus datos.")
         }
 
-        sessionManager.setActiveUser(user.id, user.accentTheme)
-        return AuthResult.Success(user)
+        // Upgrade legacy SHA-256 hashes after a successful login without forcing a password reset.
+        val authenticatedUser = if (SecurityUtils.needsRehash(user.passwordHash)) {
+            user.copy(passwordHash = SecurityUtils.createStoredPassword(password)).also {
+                userDao.updateUser(it)
+            }
+        } else {
+            user
+        }
+
+        sessionManager.setActiveUser(authenticatedUser.id, authenticatedUser.accentTheme)
+        return AuthResult.Success(authenticatedUser)
     }
 
     suspend fun switchToLocalUser(userId: Long) {
