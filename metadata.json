@@ -1,0 +1,6 @@
+{
+  "name": "PlayForja",
+  "description": "Red social gamer global con registro local, personalización total de perfiles, publicaciones libres, encuestas, clanes, arena LFG y chat de escuadrones.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
