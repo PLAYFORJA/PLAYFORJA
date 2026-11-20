@@ -217,8 +217,8 @@ class PlayForjaRepository(
         hardwareSpecs: String,
         socialLinks: String,
         clanTag: String
-    ) {
-        val user = userDao.getUserById(userId) ?: return
+    ): Boolean {
+        val user = userDao.getUserById(userId) ?: return false
         val updatedProfile = user.copy(
             displayName = displayName.trim().ifBlank { user.displayName },
             bio = bio.trim(),
@@ -239,7 +239,7 @@ class PlayForjaRepository(
         )
 
         // Award profile XP only when at least one saved profile field actually changes.
-        if (updatedProfile == user) return
+        if (updatedProfile == user) return false
 
         val badges = user.badgesCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
         badges.add("Forjador Estético")
@@ -252,6 +252,7 @@ class PlayForjaRepository(
             )
         )
         sessionManager.setAccentTheme(accentTheme)
+        return true
     }
 
     suspend fun createPost(
