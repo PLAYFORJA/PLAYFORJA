@@ -195,7 +195,7 @@ class PlayForjaViewModel(application: Application) : AndroidViewModel(applicatio
     ) {
         val uid = activeUserId.value ?: return
         viewModelScope.launch {
-            repository.updateProfile(
+            val xpAwarded = repository.updateProfile(
                 userId = uid,
                 displayName = displayName,
                 bio = bio,
@@ -214,7 +214,10 @@ class PlayForjaViewModel(application: Application) : AndroidViewModel(applicatio
                 socialLinks = socialLinks,
                 clanTag = clanTag
             )
-            _snackbarEvents.emit("Perfil gamer personalizado (+40 XP)")
+            _snackbarEvents.emit(
+                if (xpAwarded) "Perfil gamer personalizado (+40 XP)"
+                else "El perfil ya estaba actualizado."
+            )
             onSaved()
         }
     }
