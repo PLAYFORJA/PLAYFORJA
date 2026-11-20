@@ -164,8 +164,7 @@ fun PlayForjaApp(viewModel: PlayForjaViewModel) {
             onLogin = { identifier, password -> viewModel.loginLocal(identifier, password) },
             onRegister = { handle, name, email, pass, platform, game, avatar ->
                 viewModel.registerLocal(handle, name, email, pass, platform, game, avatar)
-            },
-            onQuickSwitch = { userId -> viewModel.switchAccount(userId) }
+            }
         )
         return
     }
@@ -618,7 +617,7 @@ fun PlayForjaApp(viewModel: PlayForjaViewModel) {
         AccountSwitcherDialog(
             accounts = allUsers,
             activeUserId = user.id,
-            onSelectAccount = { viewModel.switchAccount(it) },
+            onSelectAccount = { viewModel.logout() },
             onCreateNewAccount = { viewModel.logout() },
             onDismiss = { showAccountSwitcher = false }
         )
