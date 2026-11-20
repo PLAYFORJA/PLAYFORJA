@@ -147,13 +147,6 @@ class PlayForjaViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun switchAccount(userId: Long) {
-        viewModelScope.launch {
-            repository.switchToLocalUser(userId)
-            _snackbarEvents.emit("Cuenta cambiada localmente")
-        }
-    }
-
     fun logout() {
         viewModelScope.launch {
             repository.logout()
