@@ -219,27 +219,33 @@ class PlayForjaRepository(
         clanTag: String
     ) {
         val user = userDao.getUserById(userId) ?: return
+        val updatedProfile = user.copy(
+            displayName = displayName.trim().ifBlank { user.displayName },
+            bio = bio.trim(),
+            bioMotto = bioMotto.trim(),
+            playSchedule = playSchedule.trim(),
+            customTitle = customTitle.trim().ifBlank { user.customTitle },
+            platform = platform,
+            favoriteGame = favoriteGame.trim().ifBlank { user.favoriteGame },
+            favoriteGamesCsv = favoriteGamesCsv.trim(),
+            avatarPreset = avatarPreset,
+            bannerPreset = bannerPreset,
+            profileBgStyle = profileBgStyle,
+            frameStyle = frameStyle,
+            accentTheme = accentTheme,
+            hardwareSpecs = hardwareSpecs.trim(),
+            socialLinks = socialLinks.trim(),
+            clanTag = clanTag.trim().uppercase().take(6).ifBlank { user.clanTag }
+        )
+
+        // Award profile XP only when at least one saved profile field actually changes.
+        if (updatedProfile == user) return
+
         val badges = user.badgesCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
         badges.add("Forjador Estético")
         val newXp = user.xp + 40
         userDao.updateUser(
-            user.copy(
-                displayName = displayName.trim().ifBlank { user.displayName },
-                bio = bio.trim(),
-                bioMotto = bioMotto.trim(),
-                playSchedule = playSchedule.trim(),
-                customTitle = customTitle.trim().ifBlank { user.customTitle },
-                platform = platform,
-                favoriteGame = favoriteGame.trim().ifBlank { user.favoriteGame },
-                favoriteGamesCsv = favoriteGamesCsv.trim(),
-                avatarPreset = avatarPreset,
-                bannerPreset = bannerPreset,
-                profileBgStyle = profileBgStyle,
-                frameStyle = frameStyle,
-                accentTheme = accentTheme,
-                hardwareSpecs = hardwareSpecs.trim(),
-                socialLinks = socialLinks.trim(),
-                clanTag = clanTag.trim().uppercase().take(6).ifBlank { user.clanTag },
+            updatedProfile.copy(
                 xp = newXp,
                 level = levelForXp(newXp),
                 badgesCsv = badges.joinToString(",")
