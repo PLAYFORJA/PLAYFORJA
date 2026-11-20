@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.data.local.PostVisibilityPolicy
 import com.example.data.local.SecurityUtils
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -33,5 +34,24 @@ class ExampleUnitTest {
     fun malformedPasswordHashIsRejected() {
         assertFalse(SecurityUtils.verifyPassword("anything", "not-a-valid-hash"))
         assertFalse(SecurityUtils.verifyPassword("anything", "pbkdf2_sha256:0:zz:xx"))
+    }
+
+    @Test
+    fun globalPostsAreVisibleToEveryone() {
+        assertTrue(PostVisibilityPolicy.canView("GLOBAL", 2, "FORJA", 1, "VOID", emptySet()))
+    }
+
+    @Test
+    fun followerPostsAreVisibleOnlyToFollowersAndAuthor() {
+        assertTrue(PostVisibilityPolicy.canView("SEGUIDORES", 2, "FORJA", 1, "VOID", setOf(2)))
+        assertFalse(PostVisibilityPolicy.canView("SEGUIDORES", 2, "FORJA", 1, "VOID", emptySet()))
+        assertTrue(PostVisibilityPolicy.canView("SEGUIDORES", 1, "FORJA", 1, "FORJA", emptySet()))
+    }
+
+    @Test
+    fun clanPostsRequireMatchingClanAndUnknownVisibilityFailsClosed() {
+        assertTrue(PostVisibilityPolicy.canView("CLAN", 2, "FORJA", 1, "forja", emptySet()))
+        assertFalse(PostVisibilityPolicy.canView("CLAN", 2, "FORJA", 1, "VOID", emptySet()))
+        assertFalse(PostVisibilityPolicy.canView("PRIVATE", 2, "FORJA", 1, "FORJA", setOf(2)))
     }
 }
